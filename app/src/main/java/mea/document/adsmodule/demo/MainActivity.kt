@@ -16,8 +16,10 @@ class MainActivity : AppCompatActivity() {
             AdsManager.requestConsent(this) { }
         }
         findViewById<Button>(R.id.btn_interstitial).setOnClickListener {
-            AdsManager.showInterstitial(this)
+            AdsManager.showInterstitialSimple(this)
         }
+        
+
         
         // Load inline banner (within content)
         val inlineContainer = findViewById<FrameLayout>(R.id.inline_banner_container)

@@ -1,0 +1,14 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="mea.document.adsmodule" >
+4
+5    <uses-sdk android:minSdkVersion="26" />
+6
+7    <application>
+7-->C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml:4:5-7:19
+8
+9        <!-- AdMob App ID can be supplied by host app via metadata if desired -->
+10        <!-- <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id"/> -->
+11    </application>
+12
+13</manifest>

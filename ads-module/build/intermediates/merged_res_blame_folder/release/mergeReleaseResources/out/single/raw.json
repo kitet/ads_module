@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "mea.document.adsmodule.ads-module-release-45:/raw/omsdk_v1_5_3.js",
+        "source": "mea.document.adsmodule.ads-module-vungle-ads-7.5.1-5:/raw/omsdk_v1_5_3.js"
+    },
+    {
+        "merged": "mea.document.adsmodule.ads-module-release-45:/raw/omid_session_client_v1_5_3.js",
+        "source": "mea.document.adsmodule.ads-module-vungle-ads-7.5.1-5:/raw/omid_session_client_v1_5_3.js"
+    }
+]

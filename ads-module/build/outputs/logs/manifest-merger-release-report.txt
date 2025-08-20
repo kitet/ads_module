@@ -1,0 +1,18 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml:2:1-9:12
+INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml:2:1-9:12
+	package
+		INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml:2:11-69
+application
+ADDED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml:4:5-7:19
+uses-sdk
+INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml
+INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\p\AI\projects\android\modules\AdsModule\ads-module\src\main\AndroidManifest.xml

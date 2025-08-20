@@ -117,6 +117,14 @@ fun showInterstitialAds(activity: Activity, onDismissed: (() -> Unit)? = null, o
 fun loadBanner(container: ViewGroup, isInline: Boolean)
 ```
 
+#### Feature Module Simplified APIs
+```kotlin
+fun showInterstitialSimple(activity: Activity): Boolean
+fun loadBannerSimple(container: ViewGroup, isInline: Boolean = true)
+fun isReady(): Boolean
+fun getStatus(): String
+```
+
 ### AdsConfig
 
 Configuration for the ads module.
@@ -195,6 +203,72 @@ bottomBannerContainer.post {
 }
 ```
 
+### Feature Module Usage (Simplified)
+
+For feature modules that want simple, direct access without callbacks:
+
+```kotlin
+// Show interstitial - no callbacks needed!
+AdsManager.showInterstitialSimple(activity)
+
+// Show interstitial following Google's best practices
+AdsManager.showInterstitialSimple(activity)
+
+// Load banner - defaults to inline
+AdsManager.loadBannerSimple(container)
+
+// Load anchored banner at bottom
+AdsManager.loadBannerSimple(container, isInline = false)
+
+// Check if ads are ready
+if (AdsManager.isReady()) {
+    AdsManager.showInterstitialSimple(activity)
+}
+
+// Get status for debugging
+println(AdsManager.getStatus())
+```
+
+### Complete Feature Module Example
+
+```kotlin
+class MyFeatureActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Load banner at bottom
+        val bannerContainer = findViewById<FrameLayout>(R.id.banner_container)
+        AdsManager.loadBannerSimple(bannerContainer, isInline = false)
+    }
+    
+    fun onLevelComplete() {
+        // Simple one-liner - no callbacks!
+        AdsManager.showInterstitialSimple(this)
+    }
+    
+    fun onPurchaseAttempt(): Boolean {
+        // Returns true if ad was shown
+        return AdsManager.showInterstitialSimple(this)
+    }
+    
+    fun onCriticalMoment() {
+        // Show interstitial for important moments
+        AdsManager.showInterstitialSimple(this)
+    }
+    
+    fun onPremiumFeature() {
+        // Show interstitial for premium features
+        val adShown = AdsManager.showInterstitialSimple(this)
+        if (adShown) {
+            unlockPremiumFeature()
+        } else {
+            // Still unlock even if ad fails
+            unlockPremiumFeature()
+        }
+    }
+}
+```
+
 ### Compose Integration
 
 ```kotlin
@@ -222,6 +296,13 @@ fun BannerAdView(modifier: Modifier = Modifier, isInline: Boolean = true) {
 - **Multi-module Projects**: Ensure only one module provides `implementation` dependencies
 - **AAR Distribution**: Include AAR in each module's `libs` folder that needs ads functionality
 
+### Feature Module Best Practices
+- Use `showInterstitialSimple()` and `loadBannerSimple()` for clean, callback-free code
+- Check `isReady()` before showing ads to avoid errors
+- Don't worry about initialization - host app handles it
+- Use `getStatus()` for debugging during development
+- Follow Google's [interstitial ad best practices](https://developers.google.com/admob/android/interstitial) to avoid policy violations
+
 ### App Open Ads
 - Set `delayFirstAppOpenMs` to avoid showing ads immediately on cold start
 - App open ads are automatically shown when app returns to foreground
@@ -237,6 +318,7 @@ fun BannerAdView(modifier: Modifier = Modifier, isInline: Boolean = true) {
 - Preload interstitials for better user experience
 - Show at natural break points (level completion, etc.)
 - Don't show too frequently to avoid user frustration
+- Follow Google's [interstitial ad guidelines](https://developers.google.com/admob/android/interstitial) for policy compliance
 
 ### Consent
 - Request consent early in app lifecycle

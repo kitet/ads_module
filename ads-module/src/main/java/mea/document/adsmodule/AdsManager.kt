@@ -86,6 +86,43 @@ object AdsManager {
     fun loadBanner(container: ViewGroup, isInline: Boolean) {
         bannerAdManager?.loadInto(container, isInline)
     }
+
+    // Feature Module Simplified APIs
+    // These methods are designed for feature modules that want simple, direct access
+
+    /**
+     * Simple interstitial show for feature modules.
+     * Follows Google's best practices without retry mechanisms to avoid policy violations.
+     */
+    fun showInterstitialSimple(activity: Activity): Boolean {
+        if (!initialized) return false
+        return interstitialAdManager?.show(activity, null, null) ?: false
+    }
+
+    /**
+     * Simple banner load for feature modules.
+     * No callbacks needed, just load and forget.
+     */
+    fun loadBannerSimple(container: ViewGroup, isInline: Boolean = true) {
+        if (!initialized) return
+        bannerAdManager?.loadInto(container, isInline)
+    }
+
+    /**
+     * Check if ads are ready to use (initialized by host app)
+     */
+    fun isReady(): Boolean = initialized
+
+    /**
+     * Get current initialization status for debugging
+     */
+    fun getStatus(): String {
+        return if (initialized) {
+            "Initialized - Ads ready to use"
+        } else {
+            "Not initialized - Host app must call AdsManager.initialize() first"
+        }
+    }
 }
 
 

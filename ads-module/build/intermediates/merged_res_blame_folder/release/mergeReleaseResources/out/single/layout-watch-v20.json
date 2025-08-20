@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "mea.document.adsmodule.ads-module-release-45:/layout-watch-v20/abc_alert_dialog_title_material.xml",
+        "source": "mea.document.adsmodule.ads-module-appcompat-1.7.1-7:/layout-watch-v20/abc_alert_dialog_title_material.xml"
+    },
+    {
+        "merged": "mea.document.adsmodule.ads-module-release-45:/layout-watch-v20/abc_alert_dialog_button_bar_material.xml",
+        "source": "mea.document.adsmodule.ads-module-appcompat-1.7.1-7:/layout-watch-v20/abc_alert_dialog_button_bar_material.xml"
+    }
+]
