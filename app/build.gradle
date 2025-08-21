@@ -39,9 +39,10 @@ dependencies {
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
 
+    // Plug-and-play ads module - dependencies are encapsulated internally
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     
-    // Required dependencies for the ads module
+    // Required runtime dependencies for the ads module
     implementation libs.play.services.ads
     implementation libs.user.messaging.platform
     implementation libs.androidx.lifecycle.runtime.ktx

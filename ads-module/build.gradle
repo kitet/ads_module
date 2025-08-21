@@ -5,11 +5,11 @@ plugins {
 
 android {
 	namespace 'mea.document.adsmodule'
-	compileSdk 35
+	compileSdk 36
 
 	defaultConfig {
 		minSdk 26
-		targetSdk 35
+		targetSdk 36
 		consumerProguardFiles 'proguard-rules.pro'
 	}
 
@@ -29,12 +29,12 @@ android {
 }
 
 dependencies {
+	// Use 'implementation' to keep dependencies internal to the module
 	implementation libs.androidx.core.ktx
 	implementation libs.androidx.appcompat
 	implementation libs.material
 	implementation libs.play.services.ads
-	implementation(libs.vungle)
-	implementation(libs.user.messaging.platform)
+	implementation libs.user.messaging.platform
 	implementation libs.androidx.lifecycle.runtime.ktx
 	implementation libs.androidx.lifecycle.process
 }

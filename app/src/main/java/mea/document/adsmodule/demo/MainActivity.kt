@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
             AdsManager.requestConsent(this) { }
         }
         findViewById<Button>(R.id.btn_interstitial).setOnClickListener {
-            AdsManager.showInterstitialSimple(this)
+            AdsManager.showInterstitialAd(this)
         }
         
 
@@ -24,13 +24,13 @@ class MainActivity : AppCompatActivity() {
         // Load inline banner (within content)
         val inlineContainer = findViewById<FrameLayout>(R.id.inline_banner_container)
         inlineContainer.post {
-            AdsManager.loadBanner(inlineContainer, isInline = true)
+            AdsManager.loadInlineBanner(inlineContainer)
         }
         
         // Load anchored banner (bottom of screen)
         val bottomContainer = findViewById<FrameLayout>(R.id.bottom_banner_container)
         bottomContainer.post {
-            AdsManager.loadBanner(bottomContainer, isInline = false)
+            AdsManager.loadAnchoredBanner(bottomContainer)
         }
     }
 }

@@ -14,37 +14,38 @@ A plug-and-play Android library for integrating Google AdMob ads with UMP consen
 
 ### 1. Add Dependencies
 
-#### For Host Apps (Final APK)
-Add the AAR and include all required dependencies:
+#### For Host Apps (Final APK) - Complete Setup
+The ads module provides a clean API facade, but the host app needs to provide runtime dependencies:
 
 ```gradle
 dependencies {
+    // Include the ads module AAR
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     
-    // Required dependencies for host app
-    implementation 'com.google.android.gms:play-services-ads:24.5.0'
-    implementation 'com.google.android.ump:user-messaging-platform:3.2.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.3'
-    implementation 'androidx.lifecycle:lifecycle-process:2.8.3'
+    // Required runtime dependencies
+    implementation 'com.google.android.gms:play-services-ads:23.2.0'
+    implementation 'com.google.android.ump:user-messaging-platform:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-process:2.8.6'
 }
 ```
 
-#### For Feature Modules (compileOnly)
-If you're building a feature module that will be included in a host app:
+#### For Feature Modules (compileOnly) - Clean API Access Only!
+Feature modules only see your public API wrapper, never the underlying SDK:
 
 ```gradle
 dependencies {
+    // Feature modules only need API access at compile time
     compileOnly fileTree(dir: 'libs', include: ['*.aar'])
-    
-    // compileOnly for module - host app will provide implementation
-    compileOnly 'com.google.android.gms:play-services-ads:24.5.0'
-    compileOnly 'com.google.android.ump:user-messaging-platform:3.2.0'
-    compileOnly 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.3'
-    compileOnly 'androidx.lifecycle:lifecycle-process:2.8.3'
+    // Runtime dependencies are provided by the host app
 }
 ```
 
-**Important**: When using `compileOnly`, the host app must include the actual `implementation` dependencies.
+**Key Architecture**: 
+- **Ads module**: Uses `implementation` to keep SDK dependencies internal
+- **Feature modules**: Use `compileOnly` to access the clean API (`AdsManager.showInterstitialAd()`)
+- **Host app**: Provides `implementation` for both AAR and runtime dependencies
+- **Result**: Feature modules never directly touch SDK classes like `InterstitialAd` or `MobileAds`
 
 ### 2. Add AdMob App ID
 
@@ -86,9 +87,11 @@ class MyApp : Application() {
 
 ## API Reference
 
-### AdsManager
+### AdsManager - Clean API Facade
 
-Main entry point for all ads functionality.
+The `AdsManager` provides a simple, vendor-agnostic interface for ads functionality. 
+All underlying SDK details are hidden internally, making it easy to swap ad vendors 
+(AdMob, Meta, etc.) without breaking other modules.
 
 #### Initialization
 ```kotlin
@@ -105,24 +108,48 @@ fun requestConsent(activity: Activity, onFinished: (Boolean) -> Unit)
 fun showAppOpenIfAvailable(activity: Activity)
 ```
 
-#### Interstitial Ads
+#### Interstitial Ads - Clean API
 ```kotlin
+// Preload for better performance
 fun preloadInterstitial()
+
+// Show with callbacks
 fun showInterstitial(activity: Activity, onDismissed: (() -> Unit)? = null, onFailed: (() -> Unit)? = null): Boolean
-fun showInterstitialAds(activity: Activity, onDismissed: (() -> Unit)? = null, onFailed: (() -> Unit)? = null): Boolean
+
+// Simple one-liner for feature modules
+fun showInterstitialAd(activity: Activity): Boolean
+
+// Perfect for natural break points
+fun showInterstitialAtBreakPoint(activity: Activity): Boolean
 ```
 
-#### Banner Ads
+#### Banner Ads - Clean API
 ```kotlin
+// Load with positioning
 fun loadBanner(container: ViewGroup, isInline: Boolean)
+
+// Inline banner (within content flow)
+fun loadInlineBanner(container: ViewGroup)
+
+// Anchored banner (bottom of screen)
+fun loadAnchoredBanner(container: ViewGroup)
+
+// Clean API with enum
+fun loadBannerAd(container: ViewGroup, position: BannerPosition = BannerPosition.INLINE)
 ```
 
-#### Feature Module Simplified APIs
+#### Status & Utilities
 ```kotlin
-fun showInterstitialSimple(activity: Activity): Boolean
-fun loadBannerSimple(container: ViewGroup, isInline: Boolean = true)
 fun isReady(): Boolean
 fun getStatus(): String
+```
+
+#### BannerPosition Enum
+```kotlin
+enum class BannerPosition {
+    INLINE,    // Banner within content flow
+    ANCHORED   // Banner anchored to screen edge
+}
 ```
 
 ### AdsConfig
@@ -203,26 +230,30 @@ bottomBannerContainer.post {
 }
 ```
 
-### Feature Module Usage (Simplified)
+### Feature Module Usage (Clean API)
 
 For feature modules that want simple, direct access without callbacks:
 
 ```kotlin
-// Show interstitial - no callbacks needed!
-AdsManager.showInterstitialSimple(activity)
+// Show interstitial - clean one-liner!
+AdsManager.showInterstitialAd(activity)
 
-// Show interstitial following Google's best practices
-AdsManager.showInterstitialSimple(activity)
+// Show interstitial at natural break points
+AdsManager.showInterstitialAtBreakPoint(activity)
 
-// Load banner - defaults to inline
-AdsManager.loadBannerSimple(container)
+// Load inline banner
+AdsManager.loadInlineBanner(container)
 
 // Load anchored banner at bottom
-AdsManager.loadBannerSimple(container, isInline = false)
+AdsManager.loadAnchoredBanner(container)
+
+// Load banner with enum (cleaner API)
+AdsManager.loadBannerAd(container, BannerPosition.INLINE)
+AdsManager.loadBannerAd(container, BannerPosition.ANCHORED)
 
 // Check if ads are ready
 if (AdsManager.isReady()) {
-    AdsManager.showInterstitialSimple(activity)
+    AdsManager.showInterstitialAd(activity)
 }
 
 // Get status for debugging
@@ -271,20 +302,364 @@ class MyFeatureActivity : Activity() {
 
 ### Compose Integration
 
+The ads module works seamlessly with Jetpack Compose! Here are multiple ways to integrate:
+
+#### 1. Simple Banner Ad Composable
+
 ```kotlin
 @Composable
-fun BannerAdView(modifier: Modifier = Modifier, isInline: Boolean = true) {
+fun BannerAdView(
+    modifier: Modifier = Modifier,
+    position: BannerPosition = BannerPosition.INLINE
+) {
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            FrameLayout(context)
+            FrameLayout(context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
         },
         update = { frame ->
             frame.post {
-                AdsManager.loadBanner(frame, isInline)
+                AdsManager.loadBannerAd(frame, position)
             }
         }
     )
+}
+```
+
+#### 2. Inline Banner Usage
+
+```kotlin
+@Composable
+fun MyContentScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Your content
+        Text("Welcome to our app!")
+        
+        // Inline banner within content flow
+        BannerAdView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .padding(16.dp)
+        )
+        
+        // More content
+        Text("Continue reading...")
+    }
+}
+```
+
+#### 3. Bottom Anchored Banner
+
+```kotlin
+@Composable
+fun MainScreen() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 60.dp) // Space for banner
+        ) {
+            Text("Your app content here")
+            // ... more content
+        }
+        
+        // Bottom anchored banner
+        BannerAdView(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(50.dp),
+            position = BannerPosition.ANCHORED
+        )
+    }
+}
+```
+
+#### 4. Interstitial Ads in Compose
+
+```kotlin
+@Composable
+fun GameScreen(
+    onLevelComplete: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    Column {
+        Button(
+            onClick = {
+                // Show interstitial before level completion
+                AdsManager.showInterstitialAd(context as Activity)
+                onLevelComplete()
+            }
+        ) {
+            Text("Complete Level")
+        }
+        
+        Button(
+            onClick = {
+                // Clean one-liner for premium features
+                if (AdsManager.showInterstitialAd(context as Activity)) {
+                    unlockPremiumFeature()
+                }
+            }
+        ) {
+            Text("Unlock Premium")
+        }
+        
+        Button(
+            onClick = {
+                // Perfect for natural break points
+                AdsManager.showInterstitialAtBreakPoint(context as Activity)
+            }
+        ) {
+            Text("Show Ad at Break Point")
+        }
+    }
+}
+```
+
+#### 5. Advanced Compose Integration with State
+
+```kotlin
+@Composable
+fun AdsAwareScreen() {
+    val context = LocalContext.current
+    var showInterstitial by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(showInterstitial) {
+        if (showInterstitial) {
+            AdsManager.showInterstitialSimple(context as Activity)
+            showInterstitial = false
+        }
+    }
+    
+    Column {
+        Button(
+            onClick = { showInterstitial = true }
+        ) {
+            Text("Show Interstitial")
+        }
+        
+        // Banner with loading state
+        var bannerLoaded by remember { mutableStateOf(false) }
+        
+        if (!bannerLoaded) {
+            CircularProgressIndicator()
+        }
+        
+        BannerAdView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .onGloballyPositioned { 
+                    bannerLoaded = true 
+                }
+        )
+    }
+}
+```
+
+#### 6. Compose with ViewModels
+
+```kotlin
+class GameViewModel : ViewModel() {
+    fun onLevelComplete(activity: Activity) {
+        // Show interstitial in ViewModel
+        AdsManager.showInterstitialSimple(activity)
+        // Continue with game logic
+    }
+}
+
+@Composable
+fun GameScreen(
+    viewModel: GameViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    
+    Column {
+        Button(
+            onClick = {
+                viewModel.onLevelComplete(context as Activity)
+            }
+        ) {
+            Text("Complete Level")
+        }
+        
+        BannerAdView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        )
+    }
+}
+```
+
+#### 7. Compose Navigation Integration
+
+```kotlin
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+    val context = LocalContext.current
+    
+    NavHost(navController = navController, startDestination = "home") {
+        composable("home") {
+            HomeScreen()
+        }
+        composable("game") {
+            GameScreen(
+                onLevelComplete = {
+                    // Show interstitial on navigation
+                    AdsManager.showInterstitialSimple(context as Activity)
+                    navController.navigate("levelComplete")
+                }
+            )
+        }
+        composable("levelComplete") {
+            LevelCompleteScreen()
+        }
+    }
+}
+```
+
+#### 8. Compose with Material 3
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Material3App() {
+    val context = LocalContext.current
+    
+    Scaffold(
+        bottomBar = {
+            // Bottom anchored banner
+            BannerAdView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                isInline = false
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Your content
+            Text("Material 3 App")
+            
+            Button(
+                onClick = {
+                    AdsManager.showInterstitialSimple(context as Activity)
+                }
+            ) {
+                Text("Show Ad")
+            }
+        }
+    }
+}
+```
+
+#### 9. Compose Testing with Ads
+
+```kotlin
+@Composable
+fun TestableScreen(
+    onAdShown: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    
+    Button(
+        onClick = {
+            if (AdsManager.showInterstitialSimple(context as Activity)) {
+                onAdShown()
+            }
+        }
+    ) {
+        Text("Test Interstitial")
+    }
+}
+
+// In your tests
+@Test
+fun testInterstitialShown() {
+    var adShown = false
+    
+    composeTestRule.setContent {
+        TestableScreen(
+            onAdShown = { adShown = true }
+        )
+    }
+    
+    composeTestRule.onNodeWithText("Test Interstitial").performClick()
+    // Verify ad was shown
+}
+```
+
+#### 10. Compose Best Practices
+
+```kotlin
+// ✅ Good: Check if ads are ready
+@Composable
+fun SafeAdScreen() {
+    val context = LocalContext.current
+    
+    if (AdsManager.isReady()) {
+        Button(
+            onClick = {
+                AdsManager.showInterstitialSimple(context as Activity)
+            }
+        ) {
+            Text("Show Ad")
+        }
+    }
+}
+
+// ✅ Good: Use remember for expensive operations
+@Composable
+fun OptimizedBanner() {
+    val bannerKey = remember { UUID.randomUUID().toString() }
+    
+    BannerAdView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+        key = bannerKey // Prevents unnecessary recompositions
+    )
+}
+
+// ✅ Good: Handle ad states
+@Composable
+fun AdWithState() {
+    var adState by remember { mutableStateOf("idle") }
+    val context = LocalContext.current
+    
+    Column {
+        when (adState) {
+            "loading" -> CircularProgressIndicator()
+            "ready" -> {
+                Button(
+                    onClick = {
+                        adState = "showing"
+                        AdsManager.showInterstitialSimple(context as Activity)
+                    }
+                ) {
+                    Text("Show Ad")
+                }
+            }
+            "showing" -> Text("Ad is showing...")
+        }
+    }
 }
 ```
 
@@ -330,13 +705,13 @@ fun BannerAdView(modifier: Modifier = Modifier, isInline: Boolean = true) {
 ### Common Issues
 
 1. **ClassNotFoundException for Google Play Services**
-   - **Host App**: Ensure you've added the required dependencies with `implementation`
-   - **Feature Module**: Use `compileOnly` and ensure host app provides `implementation`
-   - AAR doesn't include transitive dependencies
+   - **Host App**: Must include both the AAR (`implementation`) and runtime dependencies (`implementation`)
+   - **Feature Module**: Use `compileOnly` - you only need API access at compile time
+   - **Root Cause**: The AAR doesn't include transitive dependencies, host app must provide them
 
 2. **Module can't find AdsManager methods**
-   - Use `compileOnly` dependency in feature modules
-   - Host app must provide actual implementation dependencies
+   - Use `compileOnly` dependency in feature modules for API access
+   - Host app uses `implementation` for both AAR and runtime dependencies
    - Check that AAR is properly included in module's libs folder
 
 3. **Banner not showing**
@@ -368,30 +743,190 @@ AdsConfig(
 )
 ```
 
-## Multi-Module Architecture
+## Multi-Module Architecture & Implementation Details
 
 ### Typical Setup
 
 ```
 app/ (Host App)
-├── build.gradle (implementation dependencies)
+├── build.gradle (implementation AAR + runtime dependencies)
 ├── libs/
 │   └── ads-module.aar
 └── src/main/java/
     └── MyApplication.kt (AdsManager.initialize())
 
 feature-module/ (Feature Module)
-├── build.gradle (compileOnly dependencies)
+├── build.gradle (compileOnly AAR only)
 ├── libs/
 │   └── ads-module.aar
 └── src/main/java/
-    └── FeatureActivity.kt (AdsManager.showInterstitial())
+    └── FeatureActivity.kt (AdsManager.showInterstitialAd())
+
+ads-module/ (Library Module)
+├── build.gradle (implementation SDK dependencies)
+└── src/main/java/
+    └── AdsManager.kt (Clean API facade)
+```
+
+### Complete Implementation Example
+
+#### 1. Host App `build.gradle`
+```gradle
+android {
+    namespace 'com.yourcompany.yourapp'
+    compileSdk 36
+    // ... other config
+}
+
+dependencies {
+    // Standard dependencies
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    
+    // Ads module with runtime dependencies
+    implementation fileTree(dir: 'libs', include: ['*.aar'])
+    implementation 'com.google.android.gms:play-services-ads:23.2.0'
+    implementation 'com.google.android.ump:user-messaging-platform:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-process:2.8.6'
+}
+```
+
+#### 2. Feature Module `build.gradle`
+```gradle
+android {
+    namespace 'com.yourcompany.feature.shopping'
+    compileSdk 36
+    // ... other config
+}
+
+dependencies {
+    // Standard dependencies
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.fragment:fragment-ktx:1.8.5'
+    
+    // Ads module API access only
+    compileOnly fileTree(dir: 'libs', include: ['*.aar'])
+    // No need for AdMob dependencies - host app provides them!
+}
+```
+
+#### 3. Host App `Application.kt`
+```kotlin
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        
+        // Initialize ads module once in host app
+        AdsManager.initialize(
+            AdsConfig(
+                application = this,
+                appOpenAdUnitId = "ca-app-pub-xxxxxxxx/1234567890",
+                interstitialAdUnitId = "ca-app-pub-xxxxxxxx/0987654321",
+                bannerAdUnitId = "ca-app-pub-xxxxxxxx/1122334455",
+                enableAppOpenAds = true,
+                delayFirstAppOpenMs = 3000L
+            )
+        )
+    }
+}
+```
+
+#### 4. Feature Module Usage
+```kotlin
+class ShoppingActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_shopping)
+        
+        // Feature module uses clean API - no AdMob imports needed!
+        findViewById<Button>(R.id.btn_checkout).setOnClickListener {
+            // Show ad at natural break point
+            AdsManager.showInterstitialAtBreakPoint(this)
+            proceedToCheckout()
+        }
+        
+        // Load banner in shopping list
+        val bannerContainer = findViewById<FrameLayout>(R.id.banner_container)
+        bannerContainer.post {
+            AdsManager.loadInlineBanner(bannerContainer)
+        }
+    }
+}
 ```
 
 ### Dependency Flow
-1. **Feature Module**: Uses `compileOnly` to access AdsManager methods
-2. **Host App**: Provides `implementation` dependencies and initializes AdsManager
-3. **Runtime**: Feature module calls work because host app provides actual implementations
+1. **Ads Module**: Uses `implementation` to keep SDK dependencies internal to the module
+2. **Feature Module**: Uses `compileOnly` to access AdsManager API methods at compile time
+3. **Host App**: Uses `implementation` for both the AAR and required runtime dependencies
+4. **Runtime**: Feature module calls work because host app provides the actual SDK implementations
+5. **Architecture**: Feature modules only see the clean API facade, never the underlying SDK classes
+
+### Benefits & Trade-offs
+
+#### ✅ **Benefits of This Architecture**
+
+**For Feature Modules:**
+- **Clean API**: Only see `AdsManager.showInterstitialAd()`, never `InterstitialAd.load()`
+- **Vendor Agnostic**: Easy to swap from AdMob to Meta/Unity without code changes
+- **Lightweight**: `compileOnly` means no dependency bloat
+- **Future-proof**: Changes to SDK don't affect feature modules
+
+**For Host Apps:**
+- **Single Source of Truth**: All ads logic centralized in one module
+- **Control**: Host app controls SDK versions and initialization
+- **Flexibility**: Can disable ads entirely by not initializing
+- **Testing**: Easy to mock `AdsManager` for unit tests
+
+**For Ads Module:**
+- **Encapsulation**: SDK details hidden behind clean facade
+- **Maintainability**: Changes don't ripple to consumers
+- **Swappable**: Easy to replace AdMob with other ad networks
+- **Policy Compliance**: Centralized ad behavior following best practices
+
+#### ⚠️ **Trade-offs**
+
+**Host App Responsibility:**
+- Must include runtime dependencies (but this is explicit and clear)
+- Must initialize the ads module (but this ensures proper setup)
+- Must manage SDK versions (but this prevents conflicts)
+
+**Not a Fat AAR:**
+- AAR doesn't include transitive dependencies (but this is intentional for cleaner architecture)
+- Requires explicit dependency management (but this prevents version conflicts)
+
+#### 🎯 **Why This Approach is Superior**
+
+1. **Clean Architecture**: Clear separation between API and implementation
+2. **Vendor Independence**: Easy to swap ad providers without breaking changes
+3. **Explicit Dependencies**: Host app knows exactly what it's including
+4. **No Conflicts**: Each app controls its own SDK versions
+5. **Testable**: Easy to mock and test ads behavior
+6. **Policy Compliant**: Centralized ads behavior following Google's guidelines
+
+### Dependency Architecture Diagram
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Feature Module │    │   Ads Module    │    │    Host App     │
+│                 │    │                 │    │                 │
+│ compileOnly AAR │───▶│ implementation  │    │ implementation  │
+│                 │    │ - AdMob SDK     │    │ - AAR           │
+│ AdsManager.xxx()│    │ - UMP SDK       │    │ - AdMob SDK     │
+│                 │    │ - Lifecycle     │    │ - UMP SDK       │
+│                 │    │                 │    │ - Lifecycle     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │                       │
+        │                       │                       │
+        └───────────────────────┼───────────────────────┘
+                                │
+                        ┌───────▼────────┐
+                        │   Runtime       │
+                        │ Feature calls   │
+                        │ work because    │
+                        │ host provides   │
+                        │ implementations │
+                        └────────────────┘
+```
 
 ## License
 
