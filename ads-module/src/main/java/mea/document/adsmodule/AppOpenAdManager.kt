@@ -25,6 +25,11 @@ internal class AppOpenAdManager(
     private val isShowingAd: AtomicBoolean = AtomicBoolean(false)
     private var loadTimeElapsedRealtime: Long = 0L
     private var appStartElapsedRealtime: Long = SystemClock.elapsedRealtime()
+    
+    // Track application background state
+    private var isAppInBackground: Boolean = false
+    private var lastBackgroundTime: Long = 0L
+    private val minBackgroundTimeMs: Long = 1000L // Minimum time in background to show App Open ad
 
     init {
         application.registerActivityLifecycleCallbacks(this)
@@ -62,6 +67,13 @@ internal class AppOpenAdManager(
 
     fun showAdIfAvailable(activity: Activity) {
         if (isShowingAd.get()) return
+        
+        // Check if app was actually in background for sufficient time
+        val timeInBackground = SystemClock.elapsedRealtime() - lastBackgroundTime
+        if (!isAppInBackground || timeInBackground < minBackgroundTimeMs) {
+            return
+        }
+        
         val isColdStart = (SystemClock.elapsedRealtime() - appStartElapsedRealtime) < delayFirstShowMs
         if (isColdStart && delayFirstShowMs > 0) return
 
@@ -84,9 +96,21 @@ internal class AppOpenAdManager(
 
         appOpenAd?.show(activity)
     }
-
+    
+    // Listen to application lifecycle, not activity lifecycle
     override fun onStart(owner: LifecycleOwner) {
-        currentActivity?.let { showAdIfAvailable(it) }
+        // App is coming to foreground
+        if (isAppInBackground) {
+            // App was in background, now returning to foreground
+            currentActivity?.let { showAdIfAvailable(it) }
+        }
+        isAppInBackground = false
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        // App is going to background
+        isAppInBackground = true
+        lastBackgroundTime = SystemClock.elapsedRealtime()
     }
 
     override fun onActivityStarted(activity: Activity) {

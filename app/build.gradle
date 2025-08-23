@@ -39,7 +39,8 @@ dependencies {
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
 
-    // Plug-and-play ads module - dependencies are encapsulated internally
+    // Plug-and-play ads module - AAR distribution (requires reflection in code)
+    // Alternative: use 'implementation project(':ads-module')' for direct access
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     
     // Required runtime dependencies for the ads module
